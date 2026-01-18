@@ -9,26 +9,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Upload to fal.ai storage to get a hosted URL
-    const falFormData = new FormData();
-    falFormData.append("file", file);
+    // Step 1: Initiate upload to get presigned URL
+    const initResponse = await fetch(
+      "https://rest.alpha.fal.ai/storage/upload/initiate",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Key ${process.env.FAL_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content_type: file.type,
+          file_name: file.name,
+        }),
+      }
+    );
 
-    const falResponse = await fetch("https://fal.ai/api/upload", {
-      method: "POST",
-      headers: {
-        Authorization: `Key ${process.env.FAL_API_KEY}`,
-      },
-      body: falFormData,
-    });
-
-    if (!falResponse.ok) {
-      const errorText = await falResponse.text();
-      console.error("fal.ai upload error:", errorText);
-      throw new Error("Failed to upload to fal.ai");
+    if (!initResponse.ok) {
+      const errorText = await initResponse.text();
+      console.error("fal.ai initiate error:", errorText);
+      throw new Error("Failed to initiate upload");
     }
 
-    const data = await falResponse.json();
-    return NextResponse.json({ url: data.url });
+    const { upload_url, file_url } = await initResponse.json();
+
+    // Step 2: Upload file to presigned URL
+    const arrayBuffer = await file.arrayBuffer();
+    const uploadResponse = await fetch(upload_url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
+      },
+      body: arrayBuffer,
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error("fal.ai upload error:", errorText);
+      throw new Error("Failed to upload file");
+    }
+
+    return NextResponse.json({ url: file_url });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
