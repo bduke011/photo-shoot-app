@@ -17,16 +17,14 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch("https://fal.run/fal-ai/workflow-utils/file-upload", {
+    const response = await fetch("/api/upload", {
       method: "POST",
-      headers: {
-        Authorization: `Key ${process.env.NEXT_PUBLIC_FAL_API_KEY}`,
-      },
       body: formData,
     });
 
     if (!response.ok) {
-      throw new Error("Failed to upload image");
+      const error = await response.json();
+      throw new Error(error.error || "Failed to upload image");
     }
 
     const data = await response.json();
