@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.location-card {
+  @apply relative overflow-hidden rounded-xl border-2 border-transparent cursor-pointer transition-all duration-200;
+}
+
+.location-card:hover {
+  @apply border-purple-500 scale-105;
+}
+
+.location-card.selected {
+  @apply border-purple-500 ring-2 ring-purple-500/50;
+}
+
+.upload-zone {
+  @apply border-2 border-dashed border-gray-600 rounded-xl p-8 text-center cursor-pointer transition-all duration-200;
+}
+
+.upload-zone:hover {
+  @apply border-purple-500 bg-purple-500/5;
+}
+
+.upload-zone.dragging {
+  @apply border-purple-500 bg-purple-500/10;
+}
+
+.spinner {
+  @apply animate-spin rounded-full border-4 border-gray-700 border-t-purple-500;
+}
