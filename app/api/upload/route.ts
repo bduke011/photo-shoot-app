@@ -9,13 +9,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Convert file to base64 data URI - fal.ai accepts this format
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64 = buffer.toString("base64");
-    const dataUri = `data:${file.type};base64,${base64}`;
+    // Upload to fal.ai storage to get a hosted URL
+    const falFormData = new FormData();
+    falFormData.append("file", file);
 
-    return NextResponse.json({ url: dataUri });
+    const falResponse = await fetch("https://fal.ai/api/upload", {
+      method: "POST",
+      headers: {
+        Authorization: `Key ${process.env.FAL_API_KEY}`,
+      },
+      body: falFormData,
+    });
+
+    if (!falResponse.ok) {
+      const errorText = await falResponse.text();
+      console.error("fal.ai upload error:", errorText);
+      throw new Error("Failed to upload to fal.ai");
+    }
+
+    const data = await falResponse.json();
+    return NextResponse.json({ url: data.url });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
