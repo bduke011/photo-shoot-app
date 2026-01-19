@@ -9,8 +9,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Check if FAL_API_KEY is configured
-    if (!process.env.FAL_API_KEY) {
+    // Check if FAL API key is configured (support both FAL_API_KEY and FAL_KEY)
+    const falApiKey = process.env.FAL_API_KEY || process.env.FAL_KEY;
+    if (!falApiKey) {
       return NextResponse.json(
         { error: "FAL_API_KEY not configured on server" },
         { status: 500 }
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       {
         method: "POST",
         headers: {
-          Authorization: `Key ${process.env.FAL_API_KEY}`,
+          Authorization: `Key ${falApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
