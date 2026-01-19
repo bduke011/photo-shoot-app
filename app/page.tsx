@@ -1,16 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import ImageUpload from "@/components/ImageUpload";
 import LocationSelector from "@/components/LocationSelector";
 import PromptInput from "@/components/PromptInput";
 import ResultsGallery from "@/components/ResultsGallery";
 import { Location } from "@/lib/locations";
-
-interface GeneratedImage {
-  url: string;
-  type: string;
-}
+import { savePhotoShoot, GeneratedImage } from "@/lib/storage";
 
 export default function Home() {
   const [imageUrl, setImageUrl] = useState<string>("");
@@ -50,6 +47,15 @@ export default function Home() {
 
       if (data.success && data.images) {
         setGeneratedImages(data.images);
+        // Save to history
+        if (data.images.length > 0) {
+          savePhotoShoot({
+            sourceImageUrl: imageUrl,
+            location: selectedLocation.name,
+            customPrompt: customPrompt,
+            images: data.images,
+          });
+        }
       } else {
         throw new Error(data.error || "Unknown error occurred");
       }
@@ -74,6 +80,17 @@ export default function Home() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
+          <div className="flex justify-end mb-4">
+            <Link
+              href="/gallery"
+              className="text-purple-400 hover:text-purple-300 flex items-center gap-2 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              View Gallery
+            </Link>
+          </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent mb-4">
             AI Photo Shoot
           </h1>
@@ -147,7 +164,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="mt-16 text-center text-gray-500 text-sm">
-          <p>Powered by fal.ai nano-banana-pro</p>
+          <p>Powered by fal.ai FLUX Kontext</p>
         </footer>
       </div>
     </main>
