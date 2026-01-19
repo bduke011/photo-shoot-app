@@ -52,7 +52,8 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
       onImageUploaded(imageUrl);
     } catch (error) {
       console.error("Upload error:", error);
-      setUploadError("Failed to upload image. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      setUploadError(errorMessage);
       setPreview(null);
     } finally {
       setIsUploading(false);

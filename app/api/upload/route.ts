@@ -9,6 +9,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    // Check if FAL_API_KEY is configured
+    if (!process.env.FAL_API_KEY) {
+      return NextResponse.json(
+        { error: "FAL_API_KEY not configured on server" },
+        { status: 500 }
+      );
+    }
+
     // Step 1: Initiate upload to get presigned URL
     const initResponse = await fetch(
       "https://rest.alpha.fal.ai/storage/upload/initiate",
@@ -27,11 +35,22 @@ export async function POST(request: NextRequest) {
 
     if (!initResponse.ok) {
       const errorText = await initResponse.text();
-      console.error("fal.ai initiate error:", errorText);
-      throw new Error("Failed to initiate upload");
+      console.error("fal.ai initiate error:", initResponse.status, errorText);
+      return NextResponse.json(
+        { error: `fal.ai initiate failed (${initResponse.status}): ${errorText}` },
+        { status: 500 }
+      );
     }
 
-    const { upload_url, file_url } = await initResponse.json();
+    const initData = await initResponse.json();
+    const { upload_url, file_url } = initData;
+
+    if (!upload_url || !file_url) {
+      return NextResponse.json(
+        { error: `fal.ai returned invalid data: ${JSON.stringify(initData)}` },
+        { status: 500 }
+      );
+    }
 
     // Step 2: Upload file to presigned URL
     const arrayBuffer = await file.arrayBuffer();
@@ -45,15 +64,19 @@ export async function POST(request: NextRequest) {
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      console.error("fal.ai upload error:", errorText);
-      throw new Error("Failed to upload file");
+      console.error("fal.ai upload error:", uploadResponse.status, errorText);
+      return NextResponse.json(
+        { error: `fal.ai upload failed (${uploadResponse.status}): ${errorText}` },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ url: file_url });
   } catch (error) {
     console.error("Upload error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to process file" },
+      { error: `Upload failed: ${errorMessage}` },
       { status: 500 }
     );
   }
