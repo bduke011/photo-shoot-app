@@ -22,10 +22,13 @@ export async function POST(request: NextRequest) {
     const webhookUrl = process.env.N8N_WEBHOOK_URL;
     if (!webhookUrl) {
       return NextResponse.json(
-        { error: "Webhook URL not configured" },
+        { error: "N8N_WEBHOOK_URL not configured" },
         { status: 500 }
       );
     }
+
+    console.log("Calling n8n webhook:", webhookUrl);
+    console.log("Payload:", { image_url, location, custom_prompt });
 
     const response = await fetch(webhookUrl, {
       method: "POST",
@@ -39,21 +42,39 @@ export async function POST(request: NextRequest) {
       }),
     });
 
+    const responseText = await response.text();
+    console.log("n8n response status:", response.status);
+    console.log("n8n response body:", responseText);
+
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("n8n webhook error:", errorText);
       return NextResponse.json(
-        { error: "Failed to generate images" },
+        { error: `n8n webhook failed (${response.status}): ${responseText}` },
         { status: 500 }
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    // Handle empty response
+    if (!responseText || responseText.trim() === "") {
+      return NextResponse.json(
+        { error: "n8n webhook returned empty response - workflow may have timed out or errored" },
+        { status: 500 }
+      );
+    }
+
+    try {
+      const data = JSON.parse(responseText);
+      return NextResponse.json(data);
+    } catch {
+      return NextResponse.json(
+        { error: `n8n returned invalid JSON: ${responseText.substring(0, 200)}` },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error("API error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: `Generate failed: ${errorMessage}` },
       { status: 500 }
     );
   }
